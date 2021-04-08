@@ -2,6 +2,8 @@ locals {
   enabled               = module.this.enabled
   mq_admin_user_enabled = var.engine_type == "ActiveMQ"
 
+  mq_audit_logs_enabled = var.engine_type == "ActiveMQ"
+
   mq_admin_user_is_set = var.mq_admin_user != null && var.mq_admin_user != ""
   mq_admin_user        = local.mq_admin_user_is_set ? var.mq_admin_user : join("", random_string.mq_admin_user.*.result)
 
@@ -105,10 +107,20 @@ resource "aws_mq_broker" "default" {
     }
   }
 
-  logs {
-    general = var.general_log_enabled
-    audit   = var.audit_log_enabled
+  dynamic "logs" {
+    for_each = local.mq_audit_logs_enabled ? ["true"] : []
+    content {
+      general = var.general_log_enabled
+      audit   = var.audit_log_enabled
+    }
   }
+
+#  dynamic "logs" {
+#    for_each = local.mq_audit_logs_enabled ? [] : ["true"]
+#    content {
+#      general = var.general_log_enabled
+#    }
+#  }
 
   maintenance_window_start_time {
     day_of_week = var.maintenance_day_of_week
